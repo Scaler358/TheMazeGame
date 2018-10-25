@@ -6,12 +6,13 @@
 #include <conio.h>
 
 //создаем условия
-const short int MaxRowSize=20;
-const short int MaxColumnSize=20;
+const short int MaxRowSize=10;
+const short int MaxColumnSize=10;
 
 const char MapPlayerSign='@';
 const char MapWallSign='#';
 const char MapExitSign='E';
+const char MapKeySign='$';
 const char MapEmptySign=' ';
 
 using Map = std::array<std::array<char,MaxRowSize>,MaxColumnSize>;
@@ -131,6 +132,20 @@ void addExit(Map&map)
     map[RowPosition][ColumnPosition]=MapExitSign;
 }
 
+//помещаем на карту ключ
+void addKey(Map&map)
+{
+    int RowPosition;
+    int ColumnPosition;
+    do
+    {
+        RowPosition=myrand(1,MaxRowSize-2);
+        ColumnPosition=myrand(1,MaxColumnSize-2);
+    }
+    while(map[RowPosition][ColumnPosition]!=MapEmptySign);
+    map[RowPosition][ColumnPosition]=MapKeySign;
+}
+
 //показываем меню
 void showmenu()
 {
@@ -167,26 +182,40 @@ Position moveplayer(Map&map,const Position PlayerPosition,const char where)
     {
         return Position{-1,-1};
     }
+    else if(map[newPlayerPosition.RowPosition][newPlayerPosition.ClmnPosition]==MapKeySign)
+    {
+        addExit(map);
+        map[PlayerPosition.RowPosition][PlayerPosition.ClmnPosition]=MapEmptySign;
+        map[newPlayerPosition.RowPosition][newPlayerPosition.ClmnPosition]=MapPlayerSign;
+        return newPlayerPosition;
+    }
     else if(map[newPlayerPosition.RowPosition][newPlayerPosition.ClmnPosition]==MapExitSign)
     {
+        map[PlayerPosition.RowPosition][PlayerPosition.ClmnPosition]=MapEmptySign;
+        map[newPlayerPosition.RowPosition][newPlayerPosition.ClmnPosition]=MapPlayerSign;
         return Position{MaxRowSize,MaxColumnSize};
     }
 }
 
 //проверяем продолжается ли игра
-bool analizePosition(Position position)
+short int analizePosition(Position position)
 {
     if((position.RowPosition==-1&&position.ClmnPosition==-1)||(position.RowPosition==MaxColumnSize&&position.ClmnPosition==MaxRowSize))
     {
         if(position.RowPosition==-1&&position.ClmnPosition==-1)
+        {
             std::cout<<"Sorry, you lost\n"<<std::endl;
+            return -1;
+        }
         else
+        {
             std::cout<<"Congratulations, you won!\n"<<std::endl;
-        return false;
+            return 1;
+        }
     }
     else
     {
-        return true;
+        return 0;
     }
 }
 
@@ -198,6 +227,7 @@ int main(int argc, char *argv[])
     Map map;
     bool restartGame;
     bool gameContinue;
+    short int losed;
     int whereToMove;
     short int GameHardLevel;
     showmenu();
@@ -215,7 +245,7 @@ int main(int argc, char *argv[])
     fillMap(map);
     buildMaze(map,GameHardLevel);
     Position PlayerPosition=addplayer(map);
-    addExit(map);
+    addKey(map);
     while(gameContinue) //цикл отрисовки поля и игры
     {
         system("cls");
@@ -243,13 +273,19 @@ int main(int argc, char *argv[])
         }
         if(gameContinue)
         {
-            if(!analizePosition(PlayerPosition))
+            losed=analizePosition(PlayerPosition);
+            if(losed)
             {
+                if(losed==-1)
+                {
+                    GameHardLevel=6;
+                }
                 gameContinue=false;
-                GameHardLevel=6;
             }
             else
+            {
                 gameContinue=true;
+            }
         }
     }
     if(GameHardLevel==5)
@@ -257,8 +293,10 @@ int main(int argc, char *argv[])
         GameHardLevel++;
         std::cout<<"Wow, you completed the game!\n"<<std::endl;
     }
-    else
+    if(GameHardLevel<5)
+    {
         GameHardLevel++;
+    }
     }
     while(GameHardLevel<=5);
     std::cout<<"Restart game?(1/0)\n"<<std::endl;
